@@ -54,7 +54,7 @@
                               <text value="Term:"/>
                             </properties>
                           </component>
-                          <component id="6fd9c" class="javax.swing.JTextField" binding="textField1" default-binding="true">
+                          <component id="6fd9c" class="javax.swing.JTextField" binding="termTextField">
                             <constraints>
                               <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
                                 <preferred-size width="150" height="30"/>
@@ -78,14 +78,24 @@
                               <text value="Definitions:"/>
                             </properties>
                           </component>
-                          <component id="1b91b" class="javax.swing.JTextArea" binding="textArea1" default-binding="true">
+                          <scrollpane id="a8ab5" binding="scrollPane">
                             <constraints>
-                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                                <preferred-size width="150" height="50"/>
-                              </grid>
+                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                             </constraints>
-                            <properties/>
-                          </component>
+                            <properties>
+                              <verticalScrollBar value=""/>
+                            </properties>
+                            <border type="none"/>
+                            <children>
+                              <component id="1b91b" class="javax.swing.JTextArea" binding="definitionsTextArea">
+                                <constraints/>
+                                <properties>
+                                  <lineWrap value="true"/>
+                                  <text value=""/>
+                                </properties>
+                              </component>
+                            </children>
+                          </scrollpane>
                         </children>
                       </grid>
                     </children>
@@ -143,6 +153,7 @@
                           </grid>
                         </constraints>
                         <properties>
+                          <enabled value="true"/>
                           <text value="Next"/>
                         </properties>
                       </component>
@@ -153,6 +164,8 @@
                           </grid>
                         </constraints>
                         <properties>
+                          <enabled value="true"/>
+                          <hideActionText value="false"/>
                           <text value="Previous"/>
                         </properties>
                       </component>

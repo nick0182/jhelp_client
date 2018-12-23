@@ -9,6 +9,14 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 @SpringBootApplication
 public class MainFrame extends JFrame {
@@ -29,15 +37,18 @@ public class MainFrame extends JFrame {
     private JButton deleteButton;
     private JButton nextButton;
     private JButton previousButton;
-    private JTextField textField1;
+    private JTextField termTextField;
     private JPanel termPanel;
     private JPanel textPanel;
-    private JTextArea textArea1;
+    private JTextArea definitionsTextArea;
     private JButton exitButton;
+    private JScrollPane scrollPane;
     private JMenu fileMenu;
     private JMenu editMenu;
     private JMenu settingsMenu;
     private JMenu helpMenu;
+
+    private List<String> definitions = new ArrayList<>();
 
     MainFrame() {
 
@@ -48,8 +59,42 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pack();
         setSize(800, 600);
-        setResizable(false);
+        setResizable(true);
         setVisible(true);
+
+        previousButton.setEnabled(false);
+        nextButton.setEnabled(false);
+
+        findButton.addActionListener(e -> {
+
+            String term = termTextField.getText();
+
+            if (term.isBlank())
+                return;
+
+            definitionsTextArea.setText("");
+            definitions.clear();
+
+            try (Socket socket = new Socket(InetAddress.getLocalHost(), 16105)) {
+                try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
+                     ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+                    ous.writeObject(term);
+                    ous.flush();
+                    while (true) {
+                        String definition = (String) ois.readObject();
+                        definitions.add(definition);
+                    }
+                }
+
+            } catch (EOFException eof) {
+                definitionsTextArea.append(definitions.get(0));
+                if (definitions.size() > 1)
+                    nextButton.setEnabled(true);
+            } catch (IOException | ClassNotFoundException ex) {
+                ex.printStackTrace();
+            }
+
+        });
 
     }
 
@@ -110,16 +155,16 @@ public class MainFrame extends JFrame {
         final JLabel label1 = new JLabel();
         label1.setText("Term:");
         termPanel.add(label1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        textField1 = new JTextField();
-        termPanel.add(textField1, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, 30), null, 0, false));
+        termTextField = new JTextField();
+        termPanel.add(termTextField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, 30), null, 0, false));
         textPanel = new JPanel();
         textPanel.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
         contentPanel.add(textPanel, BorderLayout.CENTER);
         final JLabel label2 = new JLabel();
         label2.setText("Definitions:");
         textPanel.add(label2, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        textArea1 = new JTextArea();
-        textPanel.add(textArea1, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
+        definitionsTextArea = new JTextArea();
+        textPanel.add(definitionsTextArea, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
         buttonsPanel = new JPanel();
         buttonsPanel.setLayout(new GridLayoutManager(10, 2, new Insets(0, 0, 0, 0), -1, -1));
         mainTab.add(buttonsPanel, BorderLayout.EAST);
