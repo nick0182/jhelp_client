@@ -3,6 +3,7 @@ package com.schaydulin.jhelp_client;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
+import command.Command;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -15,8 +16,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 @SpringBootApplication
 public class MainFrame extends JFrame {
@@ -48,6 +51,8 @@ public class MainFrame extends JFrame {
     private JMenu settingsMenu;
     private JMenu helpMenu;
 
+    private static final int SERVER_PORT = 16105;
+
     private static final String NOT_FOUND = "Definition not found";
 
     private Map<String, List<String>> cashedDefinitionsMap = new HashMap<>();
@@ -56,7 +61,6 @@ public class MainFrame extends JFrame {
 
     private byte currentDefinitionIndex = -1;
 
-    // TODO: Find ignore case
     MainFrame() {
 
         super("JHelp Client");
@@ -73,7 +77,7 @@ public class MainFrame extends JFrame {
 
         findButton.addActionListener(e -> {
 
-            currentTerm = termTextField.getText();
+            currentTerm = termTextField.getText().toLowerCase();
 
             definitionsTextArea.setText("");
 
@@ -86,10 +90,12 @@ public class MainFrame extends JFrame {
 
             if (!cashedDefinitionsMap.containsKey(currentTerm)) {
 
-                try (Socket socket = new Socket(InetAddress.getLocalHost(), 16105)) {
+                try (Socket socket = new Socket(InetAddress.getLocalHost(), SERVER_PORT)) {
 
                     try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
                          ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+
+                        ous.writeObject(Command.FIND);
 
                         ous.writeObject(currentTerm);
 
@@ -133,6 +139,46 @@ public class MainFrame extends JFrame {
 
         });
 
+        addButton.addActionListener(e -> {
+
+            String term = termTextField.getText().toLowerCase();
+
+            String definition = definitionsTextArea.getText();
+
+            if (term.isBlank() && definition.isBlank()) {
+                showWarning("Nothing to add", "Empty arguments");
+                return;
+            } else if (term.isBlank()) {
+                showWarning("Term can not be empty", "Empty term");
+                return;
+            } else if (definition.isBlank()) {
+                showWarning("Definition can not be empty", "Empty definition");
+                return;
+            }
+
+            try (Socket socket = new Socket(InetAddress.getLocalHost(), SERVER_PORT)) {
+                try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream())) {
+
+                    ous.writeObject(Command.ADD);
+
+                    ous.writeObject(term);
+
+                    ous.writeObject(definition);
+
+                    ous.flush();
+
+                    showInfo("Successfully added new definition. Restart to commit changes", "Done");
+
+                }
+
+            } catch (IOException ex) {
+
+                ex.printStackTrace();
+
+            }
+
+        });
+
         nextButton.addActionListener(e -> {
 
             definitionsTextArea.setText("");
@@ -157,7 +203,7 @@ public class MainFrame extends JFrame {
 
     }
 
-    private void enableButtons(boolean enable, JButton ... buttons) {
+    private void enableButtons(boolean enable, JButton... buttons) {
 
         for (JButton button : buttons)
             button.setEnabled(enable);
@@ -170,6 +216,18 @@ public class MainFrame extends JFrame {
 
         if (currentDefinitionIndex < cashedDefinitionsMap.get(currentTerm).size() - 1)
             enableButtons(true, nextButton);
+
+    }
+
+    private void showWarning(String message, String title) {
+
+        JOptionPane.showMessageDialog(this, message, title, JOptionPane.WARNING_MESSAGE);
+
+    }
+
+    private void showInfo(String message, String title) {
+
+        JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
 
     }
 
