@@ -15,7 +15,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 
 @SpringBootApplication
@@ -48,8 +48,15 @@ public class MainFrame extends JFrame {
     private JMenu settingsMenu;
     private JMenu helpMenu;
 
-    private List<String> definitions = new ArrayList<>();
+    private static final String NOT_FOUND = "Definition not found";
 
+    private Map<String, List<String>> cashedDefinitionsMap = new HashMap<>();
+
+    private String currentTerm;
+
+    private byte currentDefinitionIndex = -1;
+
+    // TODO: Find ignore case
     MainFrame() {
 
         super("JHelp Client");
@@ -62,39 +69,107 @@ public class MainFrame extends JFrame {
         setResizable(true);
         setVisible(true);
 
-        previousButton.setEnabled(false);
-        nextButton.setEnabled(false);
+        enableButtons(false, nextButton, previousButton);
 
         findButton.addActionListener(e -> {
 
-            String term = termTextField.getText();
-
-            if (term.isBlank())
-                return;
+            currentTerm = termTextField.getText();
 
             definitionsTextArea.setText("");
-            definitions.clear();
 
-            try (Socket socket = new Socket(InetAddress.getLocalHost(), 16105)) {
-                try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
-                     ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
-                    ous.writeObject(term);
-                    ous.flush();
-                    while (true) {
+            currentDefinitionIndex = -1;
+
+            enableButtons(false, nextButton, previousButton);
+
+            if (currentTerm.isBlank())
+                return;
+
+            if (!cashedDefinitionsMap.containsKey(currentTerm)) {
+
+                try (Socket socket = new Socket(InetAddress.getLocalHost(), 16105)) {
+
+                    try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
+                         ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+
+                        ous.writeObject(currentTerm);
+
+                        ous.flush();
+
                         String definition = (String) ois.readObject();
-                        definitions.add(definition);
+
+                        if (definition == null)
+
+                            definitionsTextArea.setText(NOT_FOUND);
+
+                        else {
+
+                            cashedDefinitionsMap.put(currentTerm, new LinkedList<>());
+
+                            cashedDefinitionsMap.get(currentTerm).add(definition);
+
+                            while (true) {
+
+                                definition = (String) ois.readObject();
+
+                                cashedDefinitionsMap.get(currentTerm).add(definition);
+
+                            }
+
+                        }
+
                     }
+
+                } catch (EOFException eof) {
+
+                    showFirstDefinition();
+
+                } catch (IOException | ClassNotFoundException ex) {
+
+                    ex.printStackTrace();
+
                 }
 
-            } catch (EOFException eof) {
-                definitionsTextArea.append(definitions.get(0));
-                if (definitions.size() > 1)
-                    nextButton.setEnabled(true);
-            } catch (IOException | ClassNotFoundException ex) {
-                ex.printStackTrace();
-            }
+            } else showFirstDefinition();
 
         });
+
+        nextButton.addActionListener(e -> {
+
+            definitionsTextArea.setText("");
+            definitionsTextArea.append(cashedDefinitionsMap.get(currentTerm).get(++currentDefinitionIndex));
+            enableButtons(true, previousButton);
+            if (currentDefinitionIndex == cashedDefinitionsMap.get(currentTerm).size() - 1)
+                enableButtons(false, nextButton);
+
+        });
+
+        previousButton.addActionListener(e -> {
+
+            definitionsTextArea.setText("");
+            definitionsTextArea.append(cashedDefinitionsMap.get(currentTerm).get(--currentDefinitionIndex));
+            enableButtons(true, nextButton);
+            if (currentDefinitionIndex == 0)
+                enableButtons(false, previousButton);
+
+        });
+
+        exitButton.addActionListener(e -> System.exit(0));
+
+    }
+
+    private void enableButtons(boolean enable, JButton ... buttons) {
+
+        for (JButton button : buttons)
+            button.setEnabled(enable);
+
+    }
+
+    private void showFirstDefinition() {
+
+        definitionsTextArea.append(cashedDefinitionsMap.get(currentTerm).get(++currentDefinitionIndex));
+
+        if (currentDefinitionIndex < cashedDefinitionsMap.get(currentTerm).size() - 1)
+            enableButtons(true, nextButton);
 
     }
 
