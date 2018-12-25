@@ -36,7 +36,6 @@ public class MainFrame extends JFrame {
     private JPanel buttonsPanel;
     private JButton findButton;
     private JButton addButton;
-    private JButton editButton;
     private JButton deleteButton;
     private JButton nextButton;
     private JButton previousButton;
@@ -46,6 +45,7 @@ public class MainFrame extends JFrame {
     private JTextArea definitionsTextArea;
     private JButton exitButton;
     private JScrollPane scrollPane;
+    private JScrollBar scrollBar1;
     private JMenu fileMenu;
     private JMenu editMenu;
     private JMenu settingsMenu;
@@ -101,9 +101,9 @@ public class MainFrame extends JFrame {
 
                         ous.flush();
 
-                        String definition = (String) ois.readObject();
+                        String def = (String) ois.readObject();
 
-                        if (definition == null)
+                        if (def == null)
 
                             definitionsTextArea.setText(NOT_FOUND);
 
@@ -111,13 +111,13 @@ public class MainFrame extends JFrame {
 
                             cashedDefinitionsMap.put(currentTerm, new LinkedList<>());
 
-                            cashedDefinitionsMap.get(currentTerm).add(definition);
+                            cashedDefinitionsMap.get(currentTerm).add(def);
 
                             while (true) {
 
-                                definition = (String) ois.readObject();
+                                def = (String) ois.readObject();
 
-                                cashedDefinitionsMap.get(currentTerm).add(definition);
+                                cashedDefinitionsMap.get(currentTerm).add(def);
 
                             }
 
@@ -167,7 +167,7 @@ public class MainFrame extends JFrame {
 
                     ous.flush();
 
-                    showInfo("Successfully added new definition. Restart to commit changes", "Done");
+                    showInfo("Successfully added new definition. Restart server to commit changes", "Done");
 
                 }
 
@@ -179,7 +179,9 @@ public class MainFrame extends JFrame {
 
         });
 
-        deleteButton.addActionListener(e -> {
+        deleteButton.addActionListener(e ->
+
+        {
 
             String term = termTextField.getText().toLowerCase();
 
@@ -196,14 +198,15 @@ public class MainFrame extends JFrame {
             else {
 
                 try (Socket socket = new Socket(InetAddress.getLocalHost(), SERVER_PORT)) {
-                    try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
-                         ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+                    try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream())) {
 
                         ous.writeObject(Command.DELETE_TERM);
 
                         ous.writeObject(term);
 
-                        showInfo("Term successfully deleted. Restart to commit changes", "Done");
+                        ous.flush();
+
+                        showInfo("Term successfully deleted. Restart server to commit changes", "Done");
 
                     }
                 } catch (IOException ex) {
@@ -214,7 +217,9 @@ public class MainFrame extends JFrame {
 
         });
 
-        nextButton.addActionListener(e -> {
+        nextButton.addActionListener(e ->
+
+        {
 
             definitionsTextArea.setText("");
             definitionsTextArea.append(cashedDefinitionsMap.get(currentTerm).get(++currentDefinitionIndex));
@@ -224,7 +229,9 @@ public class MainFrame extends JFrame {
 
         });
 
-        previousButton.addActionListener(e -> {
+        previousButton.addActionListener(e ->
+
+        {
 
             definitionsTextArea.setText("");
             definitionsTextArea.append(cashedDefinitionsMap.get(currentTerm).get(--currentDefinitionIndex));
@@ -326,15 +333,22 @@ public class MainFrame extends JFrame {
         termTextField = new JTextField();
         termPanel.add(termTextField, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, 30), null, 0, false));
         textPanel = new JPanel();
-        textPanel.setLayout(new GridLayoutManager(2, 1, new Insets(0, 0, 0, 0), -1, -1));
+        textPanel.setLayout(new GridLayoutManager(2, 2, new Insets(0, 0, 0, 0), -1, -1));
         contentPanel.add(textPanel, BorderLayout.CENTER);
         final JLabel label2 = new JLabel();
         label2.setText("Definitions:");
         textPanel.add(label2, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        scrollPane = new JScrollPane();
+        scrollPane.setVerticalScrollBarPolicy(22);
+        textPanel.add(scrollPane, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         definitionsTextArea = new JTextArea();
-        textPanel.add(definitionsTextArea, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
+        definitionsTextArea.setLineWrap(true);
+        definitionsTextArea.setText("");
+        scrollPane.setViewportView(definitionsTextArea);
+        scrollBar1 = new JScrollBar();
+        textPanel.add(scrollBar1, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_WANT_GROW, null, null, null, 0, false));
         buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new GridLayoutManager(10, 2, new Insets(0, 0, 0, 0), -1, -1));
+        buttonsPanel.setLayout(new GridLayoutManager(9, 2, new Insets(0, 0, 0, 0), -1, -1));
         mainTab.add(buttonsPanel, BorderLayout.EAST);
         findButton = new JButton();
         findButton.setText("Find");
@@ -342,35 +356,36 @@ public class MainFrame extends JFrame {
         addButton = new JButton();
         addButton.setText("Add");
         buttonsPanel.add(addButton, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
-        editButton = new JButton();
-        editButton.setText("Edit");
-        buttonsPanel.add(editButton, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
         deleteButton = new JButton();
         deleteButton.setText("Delete");
-        buttonsPanel.add(deleteButton, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
+        buttonsPanel.add(deleteButton, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
         nextButton = new JButton();
+        nextButton.setEnabled(true);
         nextButton.setText("Next");
-        buttonsPanel.add(nextButton, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
+        buttonsPanel.add(nextButton, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
         previousButton = new JButton();
+        previousButton.setEnabled(true);
+        previousButton.setHideActionText(false);
         previousButton.setText("Previous");
-        buttonsPanel.add(previousButton, new GridConstraints(7, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
+        buttonsPanel.add(previousButton, new GridConstraints(6, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(58, 30), null, 0, false));
         final Spacer spacer1 = new Spacer();
         buttonsPanel.add(spacer1, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(58, 14), null, 0, false));
         final Spacer spacer2 = new Spacer();
-        buttonsPanel.add(spacer2, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(58, 14), null, 0, false));
+        buttonsPanel.add(spacer2, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(58, 14), null, 0, false));
         final Spacer spacer3 = new Spacer();
         buttonsPanel.add(spacer3, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         final Spacer spacer4 = new Spacer();
-        buttonsPanel.add(spacer4, new GridConstraints(8, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(58, 14), null, 0, false));
+        buttonsPanel.add(spacer4, new GridConstraints(7, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_VERTICAL, 1, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(58, 14), null, 0, false));
         exitButton = new JButton();
         exitButton.setText("Exit");
-        buttonsPanel.add(exitButton, new GridConstraints(9, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        buttonsPanel.add(exitButton, new GridConstraints(8, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         settingsTab = new JPanel();
         settingsTab.setLayout(new BorderLayout(0, 0));
         tabbedPane.addTab("Settings", settingsTab);
         helpTab = new JPanel();
         helpTab.setLayout(new BorderLayout(0, 0));
         tabbedPane.addTab("Help", helpTab);
+        scrollPane.setVerticalScrollBar(scrollBar1);
     }
 
     /**
