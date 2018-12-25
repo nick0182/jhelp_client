@@ -1,5 +1,5 @@
 package command;
 
 public enum Command {
-    FIND, ADD
+    FIND, ADD, DELETE_TERM
 }

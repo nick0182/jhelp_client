@@ -179,6 +179,41 @@ public class MainFrame extends JFrame {
 
         });
 
+        deleteButton.addActionListener(e -> {
+
+            String term = termTextField.getText().toLowerCase();
+
+            String definition = definitionsTextArea.getText();
+
+            if (term.isBlank() && definition.isBlank())
+
+                showWarning("Nothing to delete", "Empty arguments");
+
+            else if (term.isBlank())
+
+                showWarning("Term can not be empty", "Empty term");
+
+            else {
+
+                try (Socket socket = new Socket(InetAddress.getLocalHost(), SERVER_PORT)) {
+                    try (ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
+                         ObjectInputStream ois = new ObjectInputStream(socket.getInputStream())) {
+
+                        ous.writeObject(Command.DELETE_TERM);
+
+                        ous.writeObject(term);
+
+                        showInfo("Term successfully deleted. Restart to commit changes", "Done");
+
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+
+            }
+
+        });
+
         nextButton.addActionListener(e -> {
 
             definitionsTextArea.setText("");
